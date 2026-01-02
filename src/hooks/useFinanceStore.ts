@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
-import type { Config, FixedExpense, SavingsGoal, Transaction, QuincenaData, BudgetDistribution } from '@/types/finance';
+import type { Config, FixedExpense, SavingsGoal, Transaction, BudgetDistribution } from '@/types/finance';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+interface SavingsHistory {
+  date: string;
+  amount: number;
+  label: string;
+}
 
 const defaultConfig: Config = {
   fixedSavingsAmount: 3000,
@@ -27,7 +35,27 @@ const defaultTransactions: Transaction[] = [
   { id: '2', date: '2025-01-01', amount: 2500, type: 'variable', category: 'Entretenimiento', note: 'Netflix y Spotify' },
 ];
 
+const defaultSavingsHistory: SavingsHistory[] = [
+  { date: '2024-10-15', amount: 18000, label: 'Oct 15' },
+  { date: '2024-10-30', amount: 21000, label: 'Oct 30' },
+  { date: '2024-11-15', amount: 23500, label: 'Nov 15' },
+  { date: '2024-11-30', amount: 25200, label: 'Nov 30' },
+  { date: '2024-12-15', amount: 26800, label: 'Dic 15' },
+  { date: '2024-12-30', amount: 27700, label: 'Dic 30' },
+];
+
 const STORAGE_KEY = 'quincenal-finance-data';
+
+const emptyState = {
+  config: defaultConfig,
+  fixedExpenses: [] as FixedExpense[],
+  savingsGoals: [] as SavingsGoal[],
+  transactions: [] as Transaction[],
+  currentIncome: 0,
+  currentQuincena: '15' as '15' | '30',
+  quincenaDate: undefined as Date | undefined,
+  savingsHistory: [] as SavingsHistory[],
+};
 
 export function useFinanceStore() {
   const [config, setConfig] = useState<Config>(defaultConfig);
@@ -36,6 +64,8 @@ export function useFinanceStore() {
   const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions);
   const [currentIncome, setCurrentIncome] = useState<number>(35000);
   const [currentQuincena, setCurrentQuincena] = useState<'15' | '30'>('15');
+  const [quincenaDate, setQuincenaDate] = useState<Date | undefined>(new Date());
+  const [savingsHistory, setSavingsHistory] = useState<SavingsHistory[]>(defaultSavingsHistory);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -47,8 +77,10 @@ export function useFinanceStore() {
         if (data.fixedExpenses) setFixedExpenses(data.fixedExpenses);
         if (data.savingsGoals) setSavingsGoals(data.savingsGoals);
         if (data.transactions) setTransactions(data.transactions);
-        if (data.currentIncome) setCurrentIncome(data.currentIncome);
+        if (data.currentIncome !== undefined) setCurrentIncome(data.currentIncome);
         if (data.currentQuincena) setCurrentQuincena(data.currentQuincena);
+        if (data.quincenaDate) setQuincenaDate(new Date(data.quincenaDate));
+        if (data.savingsHistory) setSavingsHistory(data.savingsHistory);
       } catch (e) {
         console.error('Error loading data:', e);
       }
@@ -57,9 +89,18 @@ export function useFinanceStore() {
 
   // Save to localStorage on changes
   useEffect(() => {
-    const data = { config, fixedExpenses, savingsGoals, transactions, currentIncome, currentQuincena };
+    const data = { 
+      config, 
+      fixedExpenses, 
+      savingsGoals, 
+      transactions, 
+      currentIncome, 
+      currentQuincena,
+      quincenaDate: quincenaDate?.toISOString(),
+      savingsHistory,
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [config, fixedExpenses, savingsGoals, transactions, currentIncome, currentQuincena]);
+  }, [config, fixedExpenses, savingsGoals, transactions, currentIncome, currentQuincena, quincenaDate, savingsHistory]);
 
   // Calculate budget distribution based on cascade logic
   const calculateDistribution = (income: number, quincena: '15' | '30'): BudgetDistribution => {
@@ -145,6 +186,18 @@ export function useFinanceStore() {
     setSavingsGoals(prev => prev.filter(g => g.id !== id));
   };
 
+  const clearAllData = () => {
+    setConfig(defaultConfig);
+    setFixedExpenses([]);
+    setSavingsGoals([]);
+    setTransactions([]);
+    setCurrentIncome(0);
+    setCurrentQuincena('15');
+    setQuincenaDate(undefined);
+    setSavingsHistory([]);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
   const totalSaved = savingsGoals.reduce((sum, g) => sum + g.currentAmount, 0);
 
   return {
@@ -164,9 +217,13 @@ export function useFinanceStore() {
     setCurrentIncome,
     currentQuincena,
     setCurrentQuincena,
+    quincenaDate,
+    setQuincenaDate,
+    savingsHistory,
     distribution,
     remainingWants,
     totalSpent,
     totalSaved,
+    clearAllData,
   };
 }
