@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { MoneyInput } from '@/components/MoneyInput';
 import { Plus } from 'lucide-react';
 import type { FixedExpense, PayDay } from '@/types/finance';
 
@@ -15,7 +16,7 @@ interface AddExpenseDialogProps {
 export function AddExpenseDialog({ onAdd }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(0);
   const [payDay, setPayDay] = useState<PayDay>('15');
   const [isPeriodic, setIsPeriodic] = useState(false);
   const [dueDate, setDueDate] = useState('');
@@ -26,7 +27,7 @@ export function AddExpenseDialog({ onAdd }: AddExpenseDialogProps) {
 
     onAdd({
       name,
-      amount: parseFloat(amount),
+      amount,
       payDay,
       isPeriodic,
       dueDate: isPeriodic ? dueDate : undefined,
@@ -34,7 +35,7 @@ export function AddExpenseDialog({ onAdd }: AddExpenseDialogProps) {
 
     // Reset form
     setName('');
-    setAmount('');
+    setAmount(0);
     setPayDay('15');
     setIsPeriodic(false);
     setDueDate('');
@@ -46,7 +47,7 @@ export function AddExpenseDialog({ onAdd }: AddExpenseDialogProps) {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Plus className="mr-2 h-4 w-4" />
-          Agregar Gasto
+          Agregar
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -64,13 +65,11 @@ export function AddExpenseDialog({ onAdd }: AddExpenseDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="expense-amount">Monto (RD$)</Label>
-            <Input
-              id="expense-amount"
-              type="number"
-              placeholder="0"
+            <Label htmlFor="expense-amount">Monto</Label>
+            <MoneyInput
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={setAmount}
+              placeholder="0"
             />
           </div>
           <div className="space-y-2">
